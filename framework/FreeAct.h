@@ -37,29 +37,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "state_machine.h"
 
 /*---------------------------------------------------------------------------*/
-/* Event facilities... */
-
-typedef uint16_t Signal; /* event signal */
-
-enum ReservedSignals {
-    INIT_SIG, /* dispatched to AO before entering event-loop */
-    USER_SIG  /* first signal available to the users */
-};
-
-/* Event base class */
-typedef struct {
-    Signal sig; /* event signal */
-    /* event parameters added in subclasses of Event */
-} Event;
-
-/*---------------------------------------------------------------------------*/
-/* Actvie Object facilities... */
-
 typedef struct Active Active; /* forward declaration */
 
-typedef void (*DispatchHandler)(Active * const me, Event const * const e);
+typedef void (*DispatchHandler)(Active * const me, Evt const * const e);
 
 /* Active Object base class */
 struct Active {
@@ -77,27 +60,27 @@ struct Active {
 void Active_ctor(Active * const me, DispatchHandler dispatch);
 void Active_start(Active * const me,
                   uint8_t prio,       /* priority (1-based) */
-                  Event **queueSto,
+                  Evt **queueSto,
                   uint32_t queueLen,
                   void *stackSto,
                   uint32_t stackSize,
                   uint16_t opt);
-void Active_post(Active * const me, Event const * const e);
-void Active_postFromISR(Active * const me, Event const * const e,
+void Active_post(Active * const me, Evt const * const e);
+void Active_postFromISR(Active * const me, Evt const * const e,
                         BaseType_t *pxHigherPriorityTaskWoken);
 
 /*---------------------------------------------------------------------------*/
-/* Time Event facilities... */
+/* Time Evt facilities... */
 
-/* Time Event class */
+/* Time Evt class */
 typedef struct {
-    Event super;       /* inherit Event */
+    Evt super;       	/* inherit Evt */
     Active *act;       /* the AO that requested this TimeEvent */
     uint32_t timeout;  /* timeout counter; 0 means not armed */
     uint32_t interval; /* interval for periodic TimeEvent, 0 means one-shot */
 } TimeEvent;
 
-void TimeEvent_ctor(TimeEvent * const me, Signal sig, Active *act);
+void TimeEvent_ctor(TimeEvent * const me, eSignal sig, Active *act);
 void TimeEvent_arm(TimeEvent * const me, uint32_t timeout, uint32_t interval);
 void TimeEvent_disarm(TimeEvent * const me);
 

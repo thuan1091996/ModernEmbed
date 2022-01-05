@@ -42,7 +42,7 @@ void Active_ctor(Active * const me, DispatchHandler dispatch) {
 /* Event-loop thread function for all Active Objects (FreeRTOS task signature) */
 static void Active_eventLoop(void *pvParameters) {
     Active *me = (Active *)pvParameters;
-    static Event const initEvt = { INIT_SIG };
+    static Evt const initEvt = { INIT_SIG };
 
     configASSERT(me); /* Active object must be provided */
 
@@ -50,7 +50,7 @@ static void Active_eventLoop(void *pvParameters) {
     (*me->dispatch)(me, &initEvt);
 
     for (;;) {   /* for-ever "superloop" */
-        Event *e; /* pointer to event object ("message") */
+        Evt *e; /* pointer to event object ("message") */
 
         /* wait for any event and receive it into object 'e' */
         xQueueReceive(me->queue, &e, portMAX_DELAY); /* BLOCKING! */
@@ -63,7 +63,7 @@ static void Active_eventLoop(void *pvParameters) {
 /*..........................................................................*/
 void Active_start(Active * const me,
                   uint8_t prio,       /* priority (1-based) */
-                  Event **queueSto,
+                  Evt **queueSto,
                   uint32_t queueLen,
                   void *stackSto,
                   uint32_t stackSize,
@@ -75,7 +75,7 @@ void Active_start(Active * const me,
     (void)opt; /* unused parameter */
     me->queue = xQueueCreateStatic(
                    queueLen,            /* queue length - provided by user */
-                   sizeof(Event *),     /* item size */
+                   sizeof(Evt *),     /* item size */
                    (uint8_t *)queueSto, /* queue storage - provided by user */
                    &me->queue_cb);      /* queue control block */
     configASSERT(me->queue); /* queue must be created */
@@ -92,13 +92,13 @@ void Active_start(Active * const me,
 }
 
 /*..........................................................................*/
-void Active_post(Active * const me, Event const * const e) {
+void Active_post(Active * const me, Evt const * const e) {
     BaseType_t status = xQueueSend(me->queue, (void *)&e, (TickType_t)0);
     configASSERT(status == pdTRUE);
 }
 
 /*..........................................................................*/
-void Active_postFromISR(Active * const me, Event const * const e,
+void Active_postFromISR(Active * const me, Evt const * const e,
                         BaseType_t *pxHigherPriorityTaskWoken)
 {
     BaseType_t status = xQueueSendFromISR(me->queue, (void *)&e,
@@ -113,7 +113,7 @@ static TimeEvent *l_tevt[10]; /* all TimeEvents in the application */
 static uint_fast8_t l_tevtNum; /* current number of TimeEvents */
 
 /*..........................................................................*/
-void TimeEvent_ctor(TimeEvent * const me, Signal sig, Active *act) {
+void TimeEvent_ctor(TimeEvent * const me, eSignal sig, Active *act) {
     /* no critical section because it is presumed that all TimeEvents
     * are created *before* multitasking has started.
     */
