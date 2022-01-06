@@ -31,72 +31,97 @@
 * <www.state-machine.com>
 * <info@state-machine.com>
 *****************************************************************************/
+
+
+/******************************************************************************
+* Includes
+*******************************************************************************/
 #include "FreeAct.h" /* Free Active Object interface */
 
-/*..........................................................................*/
-void Active_ctor(Active * const me, DispatchHandler dispatch) {
-    me->dispatch = dispatch; /* assign the dispatch handler */
-}
+/******************************************************************************
+* Module Preprocessor Constants
+*******************************************************************************/
 
+/******************************************************************************
+* Module Preprocessor Macros
+*******************************************************************************/
+
+/******************************************************************************
+* Module Typedefs
+*******************************************************************************/
+
+/******************************************************************************
+* Module Variable Definitions
+*******************************************************************************/
+
+/******************************************************************************
+* Private Functions
+*******************************************************************************/
 /*..........................................................................*/
 /* Event-loop thread function for all Active Objects (FreeRTOS task signature) */
 static void Active_eventLoop(void *pvParameters) {
     Active *me = (Active *)pvParameters;
-    static Evt const initEvt = { INIT_SIG };
-
     configASSERT(me); /* Active object must be provided */
-
-    /* initialize the AO */
-    (*me->dispatch)(me, &initEvt);
 
     for (;;) {   /* for-ever "superloop" */
         Evt *e; /* pointer to event object ("message") */
 
         /* wait for any event and receive it into object 'e' */
-        xQueueReceive(me->queue, &e, portMAX_DELAY); /* BLOCKING! */
+        osMessageQueueGet(me->equeue_handle, &e, NULL ,osWaitForever); /* BLOCKING! */
 
         /* dispatch event to the active object 'me' */
-        (*me->dispatch)(me, e); /* NO BLOCKING! */
+        StateMachine_Dispatch(&me->sm, e);			/* NO BLOCKING! */
     }
+
+    /* Garbage collect */
+    //TODO: Free event
+    //FIXME: But what if the event use publish - subscribe scheme?
 }
 
-/*..........................................................................*/
-void Active_start(Active * const me,
-                  uint8_t prio,       /* priority (1-based) */
-                  Evt **queueSto,
-                  uint32_t queueLen,
-                  void *stackSto,
-                  uint32_t stackSize,
-                  uint16_t opt)
+
+/******************************************************************************
+* Function Definitions
+*******************************************************************************/
+void Active_Init(Active *const		me,
+				 StateHandler		initial_statehandler,
+				 portTHREAD_ATTR_T*	p_thread_attr,
+				 portEQUEUE_ATTR_T*	p_equeue_attr,
+				 uint32_t			equeue_max_len)
 {
-    StackType_t *stk_sto = stackSto;
-    uint32_t stk_depth = (stackSize / sizeof(StackType_t));
+	StateMachine_Init(&me->sm, initial_statehandler);
 
-    (void)opt; /* unused parameter */
-    me->queue = xQueueCreateStatic(
-                   queueLen,            /* queue length - provided by user */
-                   sizeof(Evt *),     /* item size */
-                   (uint8_t *)queueSto, /* queue storage - provided by user */
-                   &me->queue_cb);      /* queue control block */
-    configASSERT(me->queue); /* queue must be created */
+	/* Initialize the Thread */
+	osThreadId_t thread_status = osThreadNew(&Active_eventLoop, NULL, p_thread_attr);
+	if(thread_status != NULL)
+	{
+		me->thread_param = p_thread_attr;
+		me->thread_handle = thread_status;
+	}
 
-    me->thread = xTaskCreateStatic(
-              &Active_eventLoop,        /* the thread function */
-              "AO" ,                    /* the name of the task */
-              stk_depth,                /* stack depth */
-              me,                       /* the 'pvParameters' parameter */
-              prio + tskIDLE_PRIORITY,  /* FreeRTOS priority */
-              stk_sto,                  /* stack storage - provided by user */
-              &me->thread_cb);          /* task control block */
-    configASSERT(me->thread); /* thread must be created */
+	/* Initialize the Event queue */
+	osMessageQueueId_t equeue_status = osMessageQueueNew(equeue_max_len,
+										sizeof(Evt),
+										p_equeue_attr);
+	if (equeue_status != NULL)
+	{
+		me->equeue_param = p_equeue_attr;
+		me->equeue_handle = equeue_status;
+	}
+
 }
 
 /*..........................................................................*/
 void Active_post(Active * const me, Evt const * const e) {
-    BaseType_t status = xQueueSend(me->queue, (void *)&e, (TickType_t)0);
-    configASSERT(status == pdTRUE);
+
+	osStatus_t status = osMessageQueuePut(me->equeue_handle, e, 0, osWaitForever);
+
+	if (status != osOK)
+		while(1){
+
+		}
 }
 
+#if 0
 /*..........................................................................*/
 void Active_postFromISR(Active * const me, Evt const * const e,
                         BaseType_t *pxHigherPriorityTaskWoken)
@@ -152,10 +177,10 @@ void TimeEvent_tickFromISR(BaseType_t *pxHigherPriorityTaskWoken) {
         if (t->timeout > 0U) { /* is this TimeEvent armed? */
             if (--t->timeout == 0U) { /* is it expiring now? */
                 Active_postFromISR(t->act, &t->super,
-                                   pxHigherPriorityTaskWoken);
+                		pxHigherPriorityTaskWoken);
                 t->timeout = t->interval; /* rearm or disarm (one-shot) */
            }
         }
     }
 }
-
+#endif  /* End of 0 */

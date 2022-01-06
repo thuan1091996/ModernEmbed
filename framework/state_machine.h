@@ -16,18 +16,18 @@ typedef enum
 }eStatus;
 
 /* Forward declaration*/
-typedef struct StateMachine_t StateMachine; 
-typedef eStatus (*StateHandler)(StateMachine* const me, const Evt* p_event);
+typedef struct StateMachine StateMachine_t;
+typedef eStatus (*StateHandler)(StateMachine_t* const me, const Evt* p_event);
 /******************************************************************************
 * State machine Object
 *******************************************************************************/
 #define TRANSITION(next_statehandler)  (me->statehandler = next_statehandler, STATUS_TRANSITION)
 
-struct StateMachine_t
+struct StateMachine
 {
 	StateHandler statehandler;
 };
-void StateMachine_Init(StateMachine* const me, StateHandler initial_statehandler);
-void StateMachine_Dispatch(StateMachine* me, Evt* p_event);
+void StateMachine_Init(StateMachine_t* const me, StateHandler initial_statehandler);
+void StateMachine_Dispatch(StateMachine_t* const me, Evt const * const p_event);
 /******************************************************************************************************/
 #endif /* End of STATE_MACHINE_OBJ */

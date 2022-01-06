@@ -9,7 +9,7 @@ static Evt Exit_event = { .sig = EXIT_SIG };
 
 /* StateMachine_Init 
  * Initialize for StateMachine instance */
-void StateMachine_Init(StateMachine* const me, StateHandler initial_statehandler)
+void StateMachine_Init(StateMachine_t* const me, StateHandler initial_statehandler)
 {
 	me->statehandler = initial_statehandler;
 	
@@ -17,7 +17,7 @@ void StateMachine_Init(StateMachine* const me, StateHandler initial_statehandler
 	(*me->statehandler)(me, &Init_event);	
 }
 
-void StateMachine_Dispatch(StateMachine* me, Evt* p_event)
+void StateMachine_Dispatch(StateMachine_t* const me, Evt const * const p_event)
 {
 	StateHandler prev_statehandler = me->statehandler; //Back up previous state-handler
 	eStatus status = (*me->statehandler)(me, p_event);

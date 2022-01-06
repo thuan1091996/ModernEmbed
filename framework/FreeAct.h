@@ -34,30 +34,71 @@
 #ifndef FREE_ACT_H
 #define FREE_ACT_H
 
-#include "FreeRTOS.h"
-#include "task.h"
+/******************************************************************************
+* Includes
+*******************************************************************************/
+#include "cmsis_os.h"
 #include "queue.h"
 #include "state_machine.h"
 
-/*---------------------------------------------------------------------------*/
-typedef struct Active Active; /* forward declaration */
 
-typedef void (*DispatchHandler)(Active * const me, Evt const * const e);
+/******************************************************************************
+* Preprocessor Constants
+*******************************************************************************/
+
+/******************************************************************************
+* Configuration Constants
+*******************************************************************************/
+/* CMSIS RTOS v2 */
+#define	portTHREAD_ATTR_T			osThreadAttr_t
+#define	portTHREAD_HANDLE_T			osThreadId_t
+
+#define	portEQUEUE_ATTR_T			osMessageQueueAttr_t
+#define	portEQUEUE_HANDLE_T			osMessageQueueId_t
+
+/******************************************************************************
+* Macros
+*******************************************************************************/
+
+
+/******************************************************************************
+* Typedefs
+*******************************************************************************/
+typedef struct Active Active; /* forward declaration */
 
 /* Active Object base class */
 struct Active {
-    TaskHandle_t thread;     /* private thread */
-    StaticTask_t thread_cb;  /* thread control-block (FreeRTOS static alloc) */
 
-    QueueHandle_t queue;     /* private message queue */
-    StaticQueue_t queue_cb;  /* queue control-block (FreeRTOS static alloc) */
+	StateMachine_t		sm;		 			/* state machine*/
 
-    DispatchHandler dispatch; /* pointer to the dispatch() function */
+	portTHREAD_HANDLE_T	thread_handle;		/* private thread */
+	portTHREAD_ATTR_T*	thread_param;
+
+	/* Multiple-write / Single read access */
+	portEQUEUE_HANDLE_T	equeue_handle;		/* private message queue */
+	portEQUEUE_ATTR_T*	equeue_param;
+	uint32_t			equeue_len;
 
     /* active object data added in subclasses of Active */
 };
 
-void Active_ctor(Active * const me, DispatchHandler dispatch);
+/******************************************************************************
+* Variables
+*******************************************************************************/
+
+
+/******************************************************************************
+* Function Prototypes
+*******************************************************************************/
+void Active_Init(Active *const		me,
+				 StateHandler		initial_statehandler,
+				 portTHREAD_ATTR_T*	p_thread_attr,
+				 portEQUEUE_ATTR_T*	p_equeue_attr,
+				 uint32_t			equeue_max_len);
+
+void Active_post(Active * const me, Evt const * const e);
+
+#if 0
 void Active_start(Active * const me,
                   uint8_t prio,       /* priority (1-based) */
                   Evt **queueSto,
@@ -65,14 +106,14 @@ void Active_start(Active * const me,
                   void *stackSto,
                   uint32_t stackSize,
                   uint16_t opt);
-void Active_post(Active * const me, Evt const * const e);
+
 void Active_postFromISR(Active * const me, Evt const * const e,
                         BaseType_t *pxHigherPriorityTaskWoken);
 
 /*---------------------------------------------------------------------------*/
-/* Time Evt facilities... */
+/* Time Event facilities... */
 
-/* Time Evt class */
+/* Time Event class */
 typedef struct {
     Evt super;       	/* inherit Evt */
     Active *act;       /* the AO that requested this TimeEvent */
@@ -86,15 +127,6 @@ void TimeEvent_disarm(TimeEvent * const me);
 
 /* static (i.e., class-wide) operation */
 void TimeEvent_tickFromISR(BaseType_t *pxHigherPriorityTaskWoken);
-
-/*---------------------------------------------------------------------------*/
-/* Assertion facilities... */
-
-#define Q_ASSERT(check_)                   \
-    if (!(check_)) {                       \
-        Q_onAssert(this_module, __LINE__); \
-    } else (void)0
-
-void Q_onAssert(char const *module, int loc);
+#endif  /* End of 0 */
 
 #endif /* FREE_ACT_H */
