@@ -1,7 +1,11 @@
 #MicroXplorer Configuration settings - do not modify
 FREERTOS.FootprintOK=true
-FREERTOS.IPParameters=Tasks01,FootprintOK
-FREERTOS.Tasks01=Running_Actor,8,128,Active_EventLoop,Default,NULL,Static,Running_ActorBuffer,Running_ActorControlBlock
+FREERTOS.HEAP_NUMBER=3
+FREERTOS.IPParameters=Tasks01,FootprintOK,HEAP_NUMBER,configUSE_IDLE_HOOK,configUSE_TICK_HOOK,configGENERATE_RUN_TIME_STATS
+FREERTOS.Tasks01=Running_Actor,8,128,Active_EventLoop,Default,NULL,Dynamic,NULL,NULL
+FREERTOS.configGENERATE_RUN_TIME_STATS=1
+FREERTOS.configUSE_IDLE_HOOK=1
+FREERTOS.configUSE_TICK_HOOK=1
 File.Version=6
 KeepUserPlacement=false
 Mcu.Family=STM32WL

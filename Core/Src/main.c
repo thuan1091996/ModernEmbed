@@ -25,10 +25,10 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdbool.h"
+#include "../framework/FreeAct.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
-typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 typedef enum eTestStatus
 {
@@ -45,23 +45,16 @@ eTestStatus GPS_test;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-eTestStatus GPS_FWTest(void);
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
 
 /* Definitions for Running_Actor */
-osThreadId_t Running_ActorHandle;
-uint32_t Running_ActorBuffer[ 128 ];
-osStaticThreadDef_t Running_ActorControlBlock;
 const osThreadAttr_t Running_Actor_attributes = {
   .name = "Running_Actor",
-  .stack_mem = &Running_ActorBuffer[0],
-  .stack_size = sizeof(Running_ActorBuffer),
-  .cb_mem = &Running_ActorControlBlock,
-  .cb_size = sizeof(Running_ActorControlBlock),
   .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 4*1024
 };
 /* USER CODE BEGIN PV */
 
@@ -71,7 +64,6 @@ const osThreadAttr_t Running_Actor_attributes = {
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-void Active_EventLoop(void *argument);
 
 /* USER CODE BEGIN PFP */
 #define GPS_TEST 1
@@ -112,8 +104,6 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(GPS_EN_GPIO_Port, GPS_EN_Pin, GPIO_PIN_SET);
-  GPS_FWTest();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -137,7 +127,6 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of Running_Actor */
-  Running_ActorHandle = osThreadNew(Active_EventLoop, NULL, &Running_Actor_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -281,103 +270,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-/**************************************************************************************/
-#define PMTK_SET_NMEA_UPDATE_1HZ		"$PMTK220,1000*1F"
-#define PMTK_SET_NMEA_UPDATE_5HZ		"$PMTK220,200*2C"
-#define PMTK_SET_NMEA_UPDATE_10HZ		"$PMTK220,100*2F"
-
-
-#define PMTK_SET_NMEA_OUTPUT_RMCONLY	"$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n"		// Turn on only the second sentence (GPRMC)
-#define PMTK_SET_NMEA_OUTPUT_GGAONLY	"$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n"		// Turn on only the second sentence (GPGGA)
-#define PMTK_SET_NMEA_OUTPUT_ALLDATA	"$PMTK314,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n"		// Turn on ALL THE DATA
-
-
-#define PMTK_CMD_COLD_START				"$PMTK103*30\r\n"		// Turn GPS to "cold start"
-#define PMTK_CMD_WARM_START				"$PMTK102*31\r\n"		// Turn GPS to "warm start"
-#define PMTK_CMD_HOT_START				"$PMTK101*32\r\n"		// Turn GPS to "hot start"
-
-#define PMTK_SET_FLP_MODE				"$PMTK262,1*29\r\n"		// Tracking mode
-
-
-
-
-/* GPS sensor FW TEST - Read data */
-
-
-
-
-#define UART_TIMEOUT		100 //in ms
-#define MAX_LEN_GPS			100
-
-uint8_t g_gps_datarecv[MAX_LEN_GPS]={0};
-
-bool GPS_SendCMD(char* p_cmd, uint8_t cmd_len)
-{
-	return false;
-}
-
-bool GPS_Settings(void)
-{
-	uint8_t data_recv=0;
-	uint8_t gps_dataindex=0;
-	uint8_t max_retry = 3;
-	uint8_t expected_respond[]="PMTK001,314";
-	uint8_t respond_len=sizeof(expected_respond)-1;
-	for (int count = 0; count < max_retry; ++count)		//Retry in case unsuccessful communication
-	{
-		uint32_t cur_time = HAL_GetTick();
-		printf("Data sent to module GPS: \n");
-		if(HAL_UART_Transmit(&huart1, (uint8_t*)PMTK_SET_NMEA_OUTPUT_GGAONLY, strlen( PMTK_SET_NMEA_OUTPUT_GGAONLY), UART_TIMEOUT) == HAL_OK)
-		{
-			gps_dataindex = 0;
-			do
-			{
-				if (HAL_UART_Receive_IT(&huart1, &data_recv, 1) == HAL_OK)
-				{
-					if(data_recv == '$') 	gps_dataindex = 0;
-					else
-					{
-						g_gps_datarecv[gps_dataindex++] = data_recv;
-					}
-				}
-			}
-			while( (g_gps_datarecv[gps_dataindex-1] != '\r') && (g_gps_datarecv[gps_dataindex] != '\n')
-					&& (HAL_GetTick() <= cur_time + 3000) );
-
-			if ( memcmp(g_gps_datarecv, expected_respond, respond_len) == 0)
-			{
-				#if DEBUG_CONSOLE
-				printf("Data recv GPS:  %s \n", g_gps_datarecv);
-				#else
-				HAL_UART_Transmit(&huart1, g_gps_datarecv, gps_dataindex, 100);
-				#endif  /* End of DEBUG_CONSOLE */
-				return true;
-			}
-		}
-		HAL_UART_DeInit(&huart1);
-		MX_USART1_UART_Init();
-	}
-	return false;
-}
-
-
-eTestStatus GPS_FWTest(void)
-{
-	GPS_test = false;
-#if GPS_TEST
-	HAL_Delay(1000);
-	HAL_GPIO_WritePin(GPS_EN_GPIO_Port, GPS_EN_Pin, GPIO_PIN_SET);
-	HAL_Delay(3000);												//Wait for GPS supply power stable
-	if (GPS_Settings() == true) GPS_test = true;
-	else						GPS_test = false;
-	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6 | GPIO_PIN_7);
-#else
-	printf("----- Skipped test ----- \n");
-#endif /*End GPS_TEST*/
-	return GPS_test;
-}
-
-/**************************************************************************************/
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_Active_EventLoop */
