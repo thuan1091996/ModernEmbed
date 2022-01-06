@@ -64,13 +64,13 @@ static void Active_eventLoop(void *pvParameters) {
     configASSERT(me); /* Active object must be provided */
 
     for (;;) {   /* for-ever "superloop" */
-        Evt *e; /* pointer to event object ("message") */
+        Evt e; /* pointer to event object ("message") */
 
         /* wait for any event and receive it into object 'e' */
         osMessageQueueGet(me->equeue_handle, &e, NULL ,osWaitForever); /* BLOCKING! */
 
         /* dispatch event to the active object 'me' */
-        StateMachine_Dispatch(&me->sm, e);			/* NO BLOCKING! */
+        StateMachine_Dispatch(&me->sm, &e);			/* NO BLOCKING! */
     }
 
     /* Garbage collect */
@@ -82,16 +82,16 @@ static void Active_eventLoop(void *pvParameters) {
 /******************************************************************************
 * Function Definitions
 *******************************************************************************/
-void Active_Init(Active *const		me,
-				 StateHandler		initial_statehandler,
-				 portTHREAD_ATTR_T*	p_thread_attr,
-				 portEQUEUE_ATTR_T*	p_equeue_attr,
-				 uint32_t			equeue_max_len)
+void Active_Init(Active *const				me,
+				 StateHandler				initial_statehandler,
+				 portTHREAD_ATTR_T const*	p_thread_attr,
+				 portEQUEUE_ATTR_T const*	p_equeue_attr,
+				 uint32_t					equeue_max_len)
 {
 	StateMachine_Init(&me->sm, initial_statehandler);
 
 	/* Initialize the Thread */
-	osThreadId_t thread_status = osThreadNew(&Active_eventLoop, NULL, p_thread_attr);
+	osThreadId_t thread_status = osThreadNew(&Active_eventLoop, me, p_thread_attr);
 	if(thread_status != NULL)
 	{
 		me->thread_param = p_thread_attr;

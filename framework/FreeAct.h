@@ -69,15 +69,15 @@ typedef struct Active Active; /* forward declaration */
 /* Active Object base class */
 struct Active {
 
-	StateMachine_t		sm;		 			/* state machine*/
+	StateMachine_t				sm;		 			/* state machine*/
 
-	portTHREAD_HANDLE_T	thread_handle;		/* private thread */
-	portTHREAD_ATTR_T*	thread_param;
+	portTHREAD_HANDLE_T			thread_handle;		/* private thread */
+	portTHREAD_ATTR_T const*	thread_param;
 
 	/* Multiple-write / Single read access */
-	portEQUEUE_HANDLE_T	equeue_handle;		/* private message queue */
-	portEQUEUE_ATTR_T*	equeue_param;
-	uint32_t			equeue_len;
+	portEQUEUE_HANDLE_T			equeue_handle;		/* private message queue */
+	portEQUEUE_ATTR_T const*	equeue_param;
+	uint32_t					equeue_len;
 
     /* active object data added in subclasses of Active */
 };
@@ -90,11 +90,11 @@ struct Active {
 /******************************************************************************
 * Function Prototypes
 *******************************************************************************/
-void Active_Init(Active *const		me,
-				 StateHandler		initial_statehandler,
-				 portTHREAD_ATTR_T*	p_thread_attr,
-				 portEQUEUE_ATTR_T*	p_equeue_attr,
-				 uint32_t			equeue_max_len);
+void Active_Init(Active *const				me,
+				 StateHandler				initial_statehandler,
+				 portTHREAD_ATTR_T const*	p_thread_attr,
+				 portEQUEUE_ATTR_T const*	p_equeue_attr,
+				 uint32_t					equeue_max_len);
 
 void Active_post(Active * const me, Evt const * const e);
 
