@@ -40,7 +40,7 @@
 #include "cmsis_os.h"
 #include "queue.h"
 #include "state_machine.h"
-
+#include "mpool.h"
 
 /******************************************************************************
 * Preprocessor Constants
