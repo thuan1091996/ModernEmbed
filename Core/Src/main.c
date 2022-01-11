@@ -91,12 +91,12 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
+	/* Configure the system clock */
+	SystemClock_Config();
+	Mempool_Init();
+	/* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
