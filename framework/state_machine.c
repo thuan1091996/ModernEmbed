@@ -26,5 +26,14 @@ void StateMachine_Dispatch(StateMachine_t* const me, Evt const * const p_event)
 		(*prev_statehandler)(me, &Exit_event);
 		(*me->statehandler)(me, &Entry_event);
 	}
+	if (p_event->xdata.is_dynamic != 0U){
+		/* Dynamic event */
+		//TODO: Itachi - Garbage collector
+
+	} else {
+
+	}
+
+
 }
 /******************************************************************************************************/
