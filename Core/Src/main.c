@@ -25,7 +25,6 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdbool.h"
-#include "../framework/FreeAct.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +40,7 @@ eTestStatus GPS_test;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SYS_ACTOR_EQUEUE_LEN				10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -50,12 +50,27 @@ eTestStatus GPS_test;
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
 
+/* RTOS Objects --------------------------------------------------------------*/
+
+/***************************************************************************************************/
+/* System active objects --------------------------------------------------------------*/
 /* Definitions for Running_Actor */
-const osThreadAttr_t Running_Actor_attributes = {
-  .name = "Running_Actor",
-  .priority = (osPriority_t) osPriorityLow,
-  .stack_size = 4*1024
+const osThreadAttr_t Sys_ThreadParam = {
+		.name = 	"Sys_Actor",
+		.priority = (osPriority_t) osPriorityLow,
+		.cb_mem = NULL, /*  Automatic Dynamic Allocation */
+		.stack_size = (4*1024)
 };
+
+const osMessageQueueAttr_t Sys_EQueueParam = {
+		.name = "Sys_Actor",
+		.cb_mem = NULL, /*  Automatic Dynamic Allocation */
+};
+
+Active Actor_Sys;
+
+/***************************************************************************************************/
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -64,6 +79,9 @@ const osThreadAttr_t Running_Actor_attributes = {
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+
+static eStatus Sys_StateRunning(StateMachine_t* const me, const Evt* p_event);
+static eStatus Sys_StateSleep(StateMachine_t* const me, const Evt* p_event);
 
 /* USER CODE BEGIN PFP */
 #define GPS_TEST 1
@@ -80,16 +98,16 @@ static void MX_USART1_UART_Init(void);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
 	/* USER CODE END Init */
 
@@ -113,42 +131,43 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+	/* USER CODE BEGIN RTOS_SEMAPHORES */
+	/* add semaphores, ... */
+	/* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+	/* USER CODE BEGIN RTOS_TIMERS */
+	/* start timers, add new ones, ... */
+	/* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
+	/* USER CODE BEGIN RTOS_QUEUES */
+	/* add queues, ... */
+	/* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* creation of Running_Actor */
+	/* Create the thread(s) */
+	Active_Init(&Actor_Sys, &Sys_StateRunning, &Sys_ThreadParam, &Sys_EQueueParam, SYS_ACTOR_EQUEUE_LEN);
+	/* creation of Running_Actor */
 
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
+	/* USER CODE BEGIN RTOS_THREADS */
+	/* add threads, ... */
+	/* USER CODE END RTOS_THREADS */
 
-  /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
+	/* USER CODE BEGIN RTOS_EVENTS */
+	/* add events, ... */
+	/* USER CODE END RTOS_EVENTS */
 
-  /* Start scheduler */
-  osKernelStart();
+	/* Start scheduler */
+	osKernelStart();
 
-  /* We should never get here as control is now taken by the scheduler */
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* We should never get here as control is now taken by the scheduler */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+		/* USER CODE BEGIN 3 */
+	}
+	/* USER CODE END 3 */
 }
 
 /**
@@ -160,20 +179,14 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_HIGH);
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEDiv = RCC_HSE_DIV1;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -184,13 +197,13 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK3|RCC_CLOCKTYPE_HCLK
                               |RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1
                               |RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.AHBCLK3Divider = RCC_SYSCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -270,25 +283,51 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+
+static eStatus Sys_StateRunning(StateMachine_t* const me, const Evt* p_event)
+{
+	eStatus status;
+	switch (p_event->sig) {
+		case SIG_IDLE:
+		{
+			status = TRANSITION(Sys_StateSleep);
+		}
+		break;
+
+		case ENTRY_SIG:
+		case EXIT_SIG:
+		default:
+		{
+			status = STATUS_IGNORE;
+		}
+		break;
+	}
+	return status;
+}
+
+static eStatus Sys_StateSleep(StateMachine_t* const me, const Evt* p_event)
+{
+	eStatus status;
+	switch (p_event->sig) {
+/*		case value:
+		{
+
+		}
+		break;		*/
+
+		case ENTRY_SIG:
+		case EXIT_SIG:
+		default:
+		{
+			status = STATUS_IGNORE;
+		}
+		break;
+	}
+	return status;
+}
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_Active_EventLoop */
-/**
-  * @brief  Function implementing the Running_Actor thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_Active_EventLoop */
-void Active_EventLoop(void *argument)
-{
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END 5 */
-}
 
 /**
   * @brief  This function is executed in case of error occurrence.

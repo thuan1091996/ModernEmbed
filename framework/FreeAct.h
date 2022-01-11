@@ -56,6 +56,7 @@
 #define	portEQUEUE_ATTR_T			osMessageQueueAttr_t
 #define	portEQUEUE_HANDLE_T			osMessageQueueId_t
 
+#define portWaitTimeout				osWaitForever
 /******************************************************************************
 * Macros
 *******************************************************************************/

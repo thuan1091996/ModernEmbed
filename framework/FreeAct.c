@@ -67,7 +67,7 @@ static void Active_eventLoop(void *pvParameters) {
         Evt e; /* pointer to event object ("message") */
 
         /* wait for any event and receive it into object 'e' */
-        osMessageQueueGet(me->equeue_handle, &e, NULL ,osWaitForever); /* BLOCKING! */
+        osMessageQueueGet(me->equeue_handle, &e, NULL ,portWaitTimeout); /* BLOCKING! */
 
         /* dispatch event to the active object 'me' */
         StateMachine_Dispatch(&me->sm, &e);			/* NO BLOCKING! */
@@ -88,37 +88,37 @@ void Active_Init(Active *const				me,
 				 portEQUEUE_ATTR_T const*	p_equeue_attr,
 				 uint32_t					equeue_max_len)
 {
+    configASSERT(me); /* Active object must be provided */
 	StateMachine_Init(&me->sm, initial_statehandler);
 
 	/* Initialize the Thread */
 	osThreadId_t thread_status = osThreadNew(&Active_eventLoop, me, p_thread_attr);
-	if(thread_status != NULL)
-	{
-		me->thread_param = p_thread_attr;
-		me->thread_handle = thread_status;
-	}
+    configASSERT(thread_status);
+	me->thread_handle = thread_status;
+	me->thread_param = p_thread_attr;
 
 	/* Initialize the Event queue */
-	osMessageQueueId_t equeue_status = osMessageQueueNew(equeue_max_len,
-										sizeof(Evt),
-										p_equeue_attr);
-	if (equeue_status != NULL)
-	{
-		me->equeue_param = p_equeue_attr;
-		me->equeue_handle = equeue_status;
-	}
+	osMessageQueueId_t equeue_status;
+	equeue_status = osMessageQueueNew(equeue_max_len, sizeof(Evt), p_equeue_attr);
+    configASSERT(equeue_status);
+	me->equeue_handle = equeue_status;
+	me->equeue_param = p_equeue_attr;
+	me->equeue_len = equeue_max_len;
 
 }
 
 /*..........................................................................*/
 void Active_post(Active * const me, Evt const * const e) {
 
-	osStatus_t status = osMessageQueuePut(me->equeue_handle, e, 0, osWaitForever);
+	osStatus_t status = osMessageQueuePut(me->equeue_handle, e, 0, portWaitTimeout);
 
-	if (status != osOK)
-		while(1){
+	if (status != osOK){
 
-		}
+		configASSERT(0);
+	}
+	else{
+
+	}
 }
 
 #if 0
