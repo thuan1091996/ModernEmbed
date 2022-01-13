@@ -48,9 +48,10 @@ eTestStatus GPS_test;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim16;
 UART_HandleTypeDef huart1;
+volatile unsigned long ulHighFrequencyTimerTicks;
 
-/* RTOS Objects --------------------------------------------------------------*/
 
 /***************************************************************************************************/
 /* System active objects --------------------------------------------------------------*/
@@ -79,6 +80,7 @@ Active Actor_Sys;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM16_Init(void);
 
 static eStatus Sys_StateRunning(StateMachine_t* const me, const Evt* p_event);
 static eStatus Sys_StateSleep(StateMachine_t* const me, const Evt* p_event);
@@ -121,12 +123,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
 
   /* Init scheduler */
   osKernelInitialize();
-
+  configureTimerForRunTimeStats();
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -143,15 +146,16 @@ int main(void)
 	/* add queues, ... */
 	/* USER CODE END RTOS_QUEUES */
 
-	/* Create the thread(s) */
-	Active_Init(&Actor_Sys, &Sys_StateRunning, &Sys_ThreadParam, &Sys_EQueueParam, SYS_ACTOR_EQUEUE_LEN);
-	/* creation of Running_Actor */
+  /* Create the thread(s) */
+  /* creation of Running_Actor */
+  Running_ActorHandle = osThreadNew(Active_EventLoop, NULL, &Running_Actor_attributes);
 
-	/* USER CODE BEGIN RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
-	/* USER CODE END RTOS_THREADS */
+  /* USER CODE END RTOS_THREADS */
 
-	/* USER CODE BEGIN RTOS_EVENTS */
+  /* USER CODE BEGIN RTOS_EVENTS */
 	/* add events, ... */
 	/* USER CODE END RTOS_EVENTS */
 
@@ -207,6 +211,38 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 0;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 320-1;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
+
 }
 
 /**
@@ -326,8 +362,38 @@ static eStatus Sys_StateSleep(StateMachine_t* const me, const Evt* p_event)
 	}
 	return status;
 }
+
+
+void configureTimerForRunTimeStats(void) {
+  ulHighFrequencyTimerTicks = 0;
+  HAL_TIM_Base_Start_IT(&htim16);
+}
+unsigned long getRunTimeCounterValue(void) {
+  return ulHighFrequencyTimerTicks;
+}
+
+
 /* USER CODE END 4 */
 
+/* USER CODE BEGIN Header_Active_EventLoop */
+/**
+  * @brief  Function implementing the Running_Actor thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_Active_EventLoop */
+void Active_EventLoop(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+	  for(uint32_t idx=0; idx<1000; idx++)
+	  {};
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
