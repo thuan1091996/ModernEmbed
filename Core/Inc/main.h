@@ -60,6 +60,7 @@ void Error_Handler(void);
 #define GPS_EN_Pin GPIO_PIN_0
 #define GPS_EN_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+#define	TEST_FRAMEWORK	1
 
 /* USER CODE END Private defines */
 

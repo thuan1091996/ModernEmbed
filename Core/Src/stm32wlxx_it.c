@@ -20,8 +20,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32wlxx_it.h"
-#include "FreeRTOS.h"
-#include "task.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -58,9 +56,8 @@
 
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim16;
-extern volatile unsigned long ulHighFrequencyTimerTicks;
-
 /* USER CODE BEGIN EV */
+extern volatile unsigned long ulHighFrequencyTimerTicks;
 
 /* USER CODE END EV */
 
@@ -187,9 +184,6 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles TIM16 Global Interrupt.
   */
-
-
-
 void TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM16_IRQn 0 */
