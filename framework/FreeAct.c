@@ -60,22 +60,27 @@
 /*..........................................................................*/
 /* Event-loop thread function for all Active Objects (FreeRTOS task signature) */
 static void Active_eventLoop(void *pvParameters) {
-    Active *me = (Active *)pvParameters;
-    configASSERT(me); /* Active object must be provided */
+	Active *me = (Active *)pvParameters;
+	configASSERT(me); /* Active object must be provided */
 
-    for (;;) {   /* for-ever "superloop" */
-        Evt e; /* pointer to event object ("message") */
+	for (;;) {   /* for-ever "superloop" */
 
-        /* wait for any event and receive it into object 'e' */
-        osMessageQueueGet(me->equeue_handle, &e, NULL ,portWaitTimeout); /* BLOCKING! */
+		EvtId_t e; /* pointer to event object ("message") */
 
-        /* dispatch event to the active object 'me' */
-        StateMachine_Dispatch(&me->sm, &e);			/* NO BLOCKING! */
-    }
+		/* wait for any event and receive it into object 'e' */
 
-    /* Garbage collect */
-    //TODO: Free event
-    //FIXME: But what if the event use publish - subscribe scheme?
+		osMessageQueueGet(me->equeue_handle, (void*)&e, NULL ,portWaitTimeout); /* BLOCKING! */
+
+		configASSERT(e); 		/* Make sure get the address of event when get message from queue */
+
+		/* dispatch event to the active object 'me' */
+		StateMachine_Dispatch(&me->sm, e);			/* NO BLOCKING! */
+
+		/* Critical section */
+		Event_GC(e);
+		/* Critical section */
+
+	}
 }
 
 
@@ -99,7 +104,7 @@ void Active_Init(Active *const				me,
 
 	/* Initialize the Event queue */
 	osMessageQueueId_t equeue_status;
-	equeue_status = osMessageQueueNew(equeue_max_len, sizeof(Evt), p_equeue_attr);
+	equeue_status = osMessageQueueNew(equeue_max_len, sizeof(EvtId_t), p_equeue_attr);
     configASSERT(equeue_status);
 	me->equeue_handle = equeue_status;
 	me->equeue_param = p_equeue_attr;
@@ -108,9 +113,9 @@ void Active_Init(Active *const				me,
 }
 
 /*..........................................................................*/
-void Active_post(Active * const me, Evt const * const e) {
+void Active_post(Active * const me, EvtId_t const e){
 
-	osStatus_t status = osMessageQueuePut(me->equeue_handle, e, 0, portWaitTimeout);
+	osStatus_t status = osMessageQueuePut(me->equeue_handle, &e, 0, portWaitTimeout);
 
 	if (status != osOK){
 

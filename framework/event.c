@@ -29,16 +29,17 @@
 * Function Definitions
 *******************************************************************************/
 
-Evt* Event_New(eSignal sig, uint16_t evt_size)
+/* Return the address of allocated memory */
+EvtId_t Event_New(eSignal sig, uint16_t evt_size)
 {
-	Evt* e = NULL;
+	EvtId_t e = NULL;
 	uint8_t idx;
 	for(idx=0; idx < POOL_NUMB_SIZE; idx++)
 	{
 		if(evt_size <= (Mempool_P+idx)->Blocksize)
 		{
 			e = osMemoryPoolAlloc((Mempool_P+idx)->Handle, portWaitTimeout);
-			if(e != (Evt*) NULL)
+			if(e != (EvtId_t) NULL)
 			{
 				e->sig = sig;
 				e->xdata.is_dynamic = (idx+1);
@@ -51,4 +52,23 @@ Evt* Event_New(eSignal sig, uint16_t evt_size)
 	return e;
 }
 
+/* Event garbage collector */
+void Event_GC(EvtId_t e)
+{
+	if (e->xdata.is_dynamic != 0)
+	{
+		/* The last one use this event ?*/
+		if(e->xdata.ref_cnt == 0)
+		{
+			uint8_t idx= e->xdata.is_dynamic - 1;
+			osStatus_t status_free;
+			status_free = osMemoryPoolFree((Mempool_P+idx)->Handle, e);
+			configASSERT(status_free == osOK);
+		}
+		else
+		{
+			e->xdata.ref_cnt--;
+		}
+	}
+}
 #endif /* EVENT_H_ */

@@ -26,6 +26,7 @@
 *******************************************************************************/
 typedef uint16_t eSignal;
 typedef struct Event_t Evt;
+typedef Evt* EvtId_t;
 
 typedef struct
 {
@@ -67,6 +68,7 @@ struct Event_t
 /******************************************************************************
 * Function declarations
 *******************************************************************************/
-Evt* Event_New(eSignal sig, uint16_t evt_size);
+EvtId_t Event_New(eSignal sig, uint16_t evt_size);
+void Event_GC(EvtId_t e);
 
 #endif /* EVENT_H_ */

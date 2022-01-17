@@ -41,7 +41,12 @@
 #include "queue.h"
 #include "state_machine.h"
 #include "mempool.h"
+#include "event.h"
 
+
+#if !TEST
+#include "stm32wle5xx.h"
+#endif  /* End of TEST */
 /******************************************************************************
 * Preprocessor Constants
 *******************************************************************************/
@@ -97,7 +102,7 @@ void Active_Init(Active *const				me,
 				 portEQUEUE_ATTR_T const*	p_equeue_attr,
 				 uint32_t					equeue_max_len);
 
-void Active_post(Active * const me, Evt const * const e);
+void Active_post(Active * const me, EvtId_t const e);
 
 #if 0
 void Active_start(Active * const me,

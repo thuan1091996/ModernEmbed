@@ -58,7 +58,7 @@ volatile unsigned long ulHighFrequencyTimerTicks;
 /* Definitions for Running_Actor */
 const osThreadAttr_t Sys_ThreadParam = {
 		.name = 	"Sys_Actor",
-		.priority = (osPriority_t) osPriorityLow,
+		.priority = (osPriority_t) osPriorityLow1,
 		.cb_mem = NULL, /*  Automatic Dynamic Allocation */
 		.stack_size = (4*1024)
 };
@@ -231,7 +231,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 0;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 320-1;
+  htim16.Init.Period = 1600-1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -321,28 +321,28 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 
-static eStatus Sys_StateRunning(StateMachine_t* const me, const Evt* p_event)
+static eStatus Sys_StateRunning(StateMachine_t* const me, const EvtId_t p_event)
 {
 	eStatus status;
 	switch (p_event->sig) {
-		case SIG_IDLE:
-		{
-			status = TRANSITION(Sys_StateSleep);
-		}
-		break;
+	case SIG_IDLE:
+	{
+		status = TRANSITION(Sys_StateSleep);
+	}
+	break;
 
-		case ENTRY_SIG:
-		case EXIT_SIG:
-		default:
-		{
-			status = STATUS_IGNORE;
-		}
-		break;
+	case ENTRY_SIG:
+	case EXIT_SIG:
+	default:
+	{
+		status = STATUS_IGNORE;
+	}
+	break;
 	}
 	return status;
 }
 
-static eStatus Sys_StateSleep(StateMachine_t* const me, const Evt* p_event)
+static eStatus Sys_StateSleep(StateMachine_t* const me, const EvtId_t p_event)
 {
 	eStatus status;
 	switch (p_event->sig) {
