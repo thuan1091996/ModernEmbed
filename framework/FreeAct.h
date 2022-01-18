@@ -83,8 +83,6 @@ struct Active {
 	/* Multiple-write / Single read access */
 	portEQUEUE_HANDLE_T			equeue_handle;		/* private message queue */
 	portEQUEUE_ATTR_T const*	equeue_param;
-	uint32_t					equeue_len;
-
     /* active object data added in subclasses of Active */
 };
 
@@ -102,7 +100,12 @@ void Active_Init(Active *const				me,
 				 portEQUEUE_ATTR_T const*	p_equeue_attr,
 				 uint32_t					equeue_max_len);
 
-void Active_post(Active * const me, EvtId_t const e);
+/* Direct posting an event to an active objec
+ * @param: 	me:		Object to post to
+ * @param: 	e:		Pointer to event to post
+ * @return: true if posted successfully */
+
+bool Active_post(Active * const me, EvtId_t const e);
 
 #if 0
 void Active_start(Active * const me,

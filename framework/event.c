@@ -55,11 +55,13 @@ EvtId_t Event_New(eSignal sig, uint16_t evt_size)
 /* Event garbage collector */
 void Event_GC(EvtId_t e)
 {
+	portDISABLE_INTERRUPTS();
 	if (e->xdata.is_dynamic != 0)
 	{
 		/* The last one use this event ?*/
 		if(e->xdata.ref_cnt == 0)
 		{
+			portENABLE_INTERRUPTS();
 			uint8_t idx= e->xdata.is_dynamic - 1;
 			osStatus_t status_free;
 			status_free = osMemoryPoolFree((Mempool_P+idx)->Handle, e);
@@ -68,7 +70,12 @@ void Event_GC(EvtId_t e)
 		else
 		{
 			e->xdata.ref_cnt--;
+			portENABLE_INTERRUPTS();
 		}
+	}
+	else
+	{
+		portENABLE_INTERRUPTS();
 	}
 }
 #endif /* EVENT_H_ */

@@ -131,7 +131,6 @@ int main(void)
 
 	/* Configure the system clock */
 	SystemClock_Config();
-	Mempool_Init();
 	/* USER CODE BEGIN SysInit */
 
 	/* USER CODE END SysInit */

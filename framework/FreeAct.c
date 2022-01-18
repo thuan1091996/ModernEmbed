@@ -71,14 +71,12 @@ static void Active_eventLoop(void *pvParameters) {
 
 		osMessageQueueGet(me->equeue_handle, (void*)&e, NULL ,portWaitTimeout); /* BLOCKING! */
 
-		configASSERT(e); 		/* Make sure get the address of event when get message from queue */
+		configASSERT(e);
 
 		/* dispatch event to the active object 'me' */
 		StateMachine_Dispatch(&me->sm, e);			/* NO BLOCKING! */
 
-		/* Critical section */
 		Event_GC(e);
-		/* Critical section */
 
 	}
 }
@@ -108,22 +106,31 @@ void Active_Init(Active *const				me,
     configASSERT(equeue_status);
 	me->equeue_handle = equeue_status;
 	me->equeue_param = p_equeue_attr;
-	me->equeue_len = equeue_max_len;
-
 }
 
 /*..........................................................................*/
-void Active_post(Active * const me, EvtId_t const e){
+bool Active_post(Active * const me, EvtId_t const e){
 
-	osStatus_t status = osMessageQueuePut(me->equeue_handle, &e, 0, portWaitTimeout);
+	bool ret = false;
+	if ( osMessageQueueGetSpace(me->equeue_handle) > 0)
+	{
+		osStatus_t status = osMessageQueuePut(me->equeue_handle, &e, 0, portWaitTimeout);
+		if (status != osOK) {
 
-	if (status != osOK){
-
-		configASSERT(0);
+			configASSERT(0);
+		}
+		else
+		{
+			portDISABLE_INTERRUPTS();
+			if(e->xdata.is_dynamic != 0)
+			{
+				e->xdata.ref_cnt++;
+			}
+			portENABLE_INTERRUPTS();
+			ret = true;
+		}
 	}
-	else{
-
-	}
+	return ret;
 }
 
 #if 0
