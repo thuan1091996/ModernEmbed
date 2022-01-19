@@ -44,7 +44,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-extern Active Actor_Sys;
 extern volatile unsigned long ulHighFrequencyTimerTicks;
 extern TIM_HandleTypeDef htim16;
 

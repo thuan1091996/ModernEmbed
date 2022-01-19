@@ -44,12 +44,11 @@
 #include "event.h"
 
 
-#if !TEST
-#include "stm32wle5xx.h"
-#endif  /* End of TEST */
 /******************************************************************************
 * Preprocessor Constants
 *******************************************************************************/
+#define ACTOR_MAX_NUMB					32
+#define ACTOR_MAX_RETRY					5
 
 /******************************************************************************
 * Configuration Constants
@@ -107,36 +106,6 @@ void Active_Init(Active *const				me,
  * @return: true if posted successfully */
 
 bool Active_post(Active * const me, EvtId_t const e);
-
-#if 0
-void Active_start(Active * const me,
-                  uint8_t prio,       /* priority (1-based) */
-                  Evt **queueSto,
-                  uint32_t queueLen,
-                  void *stackSto,
-                  uint32_t stackSize,
-                  uint16_t opt);
-
-void Active_postFromISR(Active * const me, Evt const * const e,
-                        BaseType_t *pxHigherPriorityTaskWoken);
-
-/*---------------------------------------------------------------------------*/
-/* Time Event facilities... */
-
-/* Time Event class */
-typedef struct {
-    Evt super;       	/* inherit Evt */
-    Active *act;       /* the AO that requested this TimeEvent */
-    uint32_t timeout;  /* timeout counter; 0 means not armed */
-    uint32_t interval; /* interval for periodic TimeEvent, 0 means one-shot */
-} TimeEvent;
-
-void TimeEvent_ctor(TimeEvent * const me, eSignal sig, Active *act);
-void TimeEvent_arm(TimeEvent * const me, uint32_t timeout, uint32_t interval);
-void TimeEvent_disarm(TimeEvent * const me);
-
-/* static (i.e., class-wide) operation */
-void TimeEvent_tickFromISR(BaseType_t *pxHigherPriorityTaskWoken);
-#endif  /* End of 0 */
-
+uint8_t Active_GetID(Active* const me);
+ActiveId_t Active_GetActiveByID(uint8_t id);
 #endif /* FREE_ACT_H */

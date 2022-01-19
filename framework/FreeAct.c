@@ -53,6 +53,8 @@
 /******************************************************************************
 * Module Variable Definitions
 *******************************************************************************/
+static ActiveId_t Active_List[ACTOR_MAX_NUMB]={0};
+
 
 /******************************************************************************
 * Private Functions
@@ -91,6 +93,7 @@ void Active_Init(Active *const				me,
 				 portEQUEUE_ATTR_T const*	p_equeue_attr,
 				 uint32_t					equeue_max_len)
 {
+	static uint8_t active_id = 0;
     configASSERT(me); /* Active object must be provided */
 	StateMachine_Init(&me->sm, initial_statehandler);
 
@@ -106,20 +109,37 @@ void Active_Init(Active *const				me,
     configASSERT(equeue_status);
 	me->equeue_handle = equeue_status;
 	me->equeue_param = p_equeue_attr;
+	Active_List[active_id++] = me;
+}
+
+uint8_t Active_GetID(Active* const me)
+{
+	for(uint8_t idx=0; idx < ACTOR_MAX_NUMB; idx++)
+	{
+		if(me == Active_List[idx])
+			return idx;
+	}
+	return 0xFF;
+}
+
+ActiveId_t Active_GetActiveByID(uint8_t id)
+{
+	if(id <= ACTOR_MAX_NUMB)
+	{
+		return Active_List[id];
+	}
+	return NULL;
 }
 
 /*..........................................................................*/
 bool Active_post(Active * const me, EvtId_t const e){
 
 	bool ret = false;
-	if ( osMessageQueueGetSpace(me->equeue_handle) > 0)
+	osStatus_t status;
+	for(uint8_t count=0; count < ACTOR_MAX_RETRY; count++)
 	{
-		osStatus_t status = osMessageQueuePut(me->equeue_handle, &e, 0, portWaitTimeout);
-		if (status != osOK) {
-
-			configASSERT(0);
-		}
-		else
+		status = osMessageQueuePut(me->equeue_handle, &e, 0, 0);
+		if (status == osOK)
 		{
 			if(e->xdata.is_dynamic != 0)
 			{
@@ -128,71 +148,17 @@ bool Active_post(Active * const me, EvtId_t const e){
 				portENABLE_INTERRUPTS();
 			}
 			ret = true;
+			break;
+		}
+		else if (status == osErrorTimeout)
+		{
+			osDelay(50); /* Retry to put in case of full after 50 ticks */
+		}
+		else
+		{
+			configASSERT(0);
 		}
 	}
 	return ret;
 }
 
-#if 0
-/*..........................................................................*/
-void Active_postFromISR(Active * const me, Evt const * const e,
-                        BaseType_t *pxHigherPriorityTaskWoken)
-{
-    BaseType_t status = xQueueSendFromISR(me->queue, (void *)&e,
-                                          pxHigherPriorityTaskWoken);
-    configASSERT(status == pdTRUE);
-}
-
-/*--------------------------------------------------------------------------*/
-/* Time Event services... */
-
-static TimeEvent *l_tevt[10]; /* all TimeEvents in the application */
-static uint_fast8_t l_tevtNum; /* current number of TimeEvents */
-
-/*..........................................................................*/
-void TimeEvent_ctor(TimeEvent * const me, eSignal sig, Active *act) {
-    /* no critical section because it is presumed that all TimeEvents
-    * are created *before* multitasking has started.
-    */
-    me->super.sig = sig;
-    me->act = act;
-    me->timeout = 0U;
-    me->interval = 0U;
-
-    /* register one more TimeEvent with the application */
-    configASSERT(l_tevtNum < sizeof(l_tevt)/sizeof(l_tevt[0]));
-    l_tevt[l_tevtNum] = me;
-    ++l_tevtNum;
-}
-
-/*..........................................................................*/
-void TimeEvent_arm(TimeEvent * const me, uint32_t timeout, uint32_t interval) {
-    taskENTER_CRITICAL();
-    me->timeout = timeout;
-    me->interval = interval;
-    taskEXIT_CRITICAL();
-}
-
-/*..........................................................................*/
-void TimeEvent_disarm(TimeEvent * const me) {
-    taskENTER_CRITICAL();
-    me->timeout = 0U;
-    taskEXIT_CRITICAL();
-}
-
-/*..........................................................................*/
-void TimeEvent_tickFromISR(BaseType_t *pxHigherPriorityTaskWoken) {
-    uint_fast8_t i;
-    for (i = 0U; i < l_tevtNum; ++i) {
-        TimeEvent * const t = l_tevt[i];
-        configASSERT(t); /* TimeEvent instance must be registered */
-        if (t->timeout > 0U) { /* is this TimeEvent armed? */
-            if (--t->timeout == 0U) { /* is it expiring now? */
-                Active_postFromISR(t->act, &t->super,
-                		pxHigherPriorityTaskWoken);
-                t->timeout = t->interval; /* rearm or disarm (one-shot) */
-           }
-        }
-    }
-}
-#endif  /* End of 0 */
