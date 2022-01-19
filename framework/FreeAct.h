@@ -71,6 +71,7 @@
 * Typedefs
 *******************************************************************************/
 typedef struct Active Active; /* forward declaration */
+typedef Active* ActiveId_t;
 
 /* Active Object base class */
 struct Active {

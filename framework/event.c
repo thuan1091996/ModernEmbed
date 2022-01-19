@@ -55,9 +55,9 @@ EvtId_t Event_New(eSignal sig, uint16_t evt_size)
 /* Event garbage collector */
 void Event_GC(EvtId_t e)
 {
-	portDISABLE_INTERRUPTS();
 	if (e->xdata.is_dynamic != 0)
 	{
+		portDISABLE_INTERRUPTS();
 		/* The last one use this event ?*/
 		if(e->xdata.ref_cnt == 0)
 		{
@@ -72,10 +72,6 @@ void Event_GC(EvtId_t e)
 			e->xdata.ref_cnt--;
 			portENABLE_INTERRUPTS();
 		}
-	}
-	else
-	{
-		portENABLE_INTERRUPTS();
 	}
 }
 #endif /* EVENT_H_ */

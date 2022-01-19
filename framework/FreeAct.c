@@ -121,12 +121,12 @@ bool Active_post(Active * const me, EvtId_t const e){
 		}
 		else
 		{
-			portDISABLE_INTERRUPTS();
 			if(e->xdata.is_dynamic != 0)
 			{
+				portDISABLE_INTERRUPTS();
 				e->xdata.ref_cnt++;
+				portENABLE_INTERRUPTS();
 			}
-			portENABLE_INTERRUPTS();
 			ret = true;
 		}
 	}
